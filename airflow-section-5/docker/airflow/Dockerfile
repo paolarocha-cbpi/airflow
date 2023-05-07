@@ -1,0 +1,34 @@
+FROM apache/airflow:2.5.3
+USER root
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends \
+         vim \
+  && apt-get autoremove -yqq --purge \
+  && apt-get clean \
+  && rm -rf /var/lib/apt/lists/*
+
+# Copy the entrypoint.sh from host to container (at path AIRFLOW_HOME)
+COPY ./start-airflow.sh ./start-airflow.sh
+
+# Set the start-airflow.sh file to be executable
+RUN chmod +x ./start-airflow.sh
+
+# Set the owner of the files in AIRFLOW_HOME to the user airflow
+RUN chown -R airflow: ${AIRFLOW_HOME}
+
+USER airflow
+
+RUN pip install --no-cache-dir lxml
+RUN pip install apache-airflow-providers-google
+
+# Set workdir (it's like a cd inside the container)
+WORKDIR ${AIRFLOW_HOME}
+
+# Create the dags folder which will contain the DAGs
+# RUN mkdir dags
+
+# Expose ports (just to indicate that this container needs to map port)
+EXPOSE 8080
+
+# Execute the start-airflow.sh
+ENTRYPOINT [ "./start-airflow.sh" ]
